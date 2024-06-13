@@ -11,6 +11,7 @@ public:
 
     void handleStart(TgBot::Message::Ptr message) override;
     void handleMenu(TgBot::Message::Ptr message) override;
+    void sortProducts(bool ascending);
     void handleMenuQ(TgBot::CallbackQuery::Ptr query) override;
 
 private:

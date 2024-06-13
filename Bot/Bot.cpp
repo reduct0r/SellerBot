@@ -28,6 +28,32 @@ Bot::Bot(const std::string& token) : telegramBot(token), currentState(std::make_
         currentState->handleMenu(message);
         });
 
+    telegramBot.getEvents().onCommand("cart", [this](TgBot::Message::Ptr message) {
+        this->showCart(message);
+        });
+
+    // Установка команд для меню бота:
+    std::vector<TgBot::BotCommand::Ptr> commands;
+    auto commandStart = std::make_shared<TgBot::BotCommand>();
+    commandStart->command = "start";
+    commandStart->description = u8"Начать работу с ботом";
+
+    auto commandMenu = std::make_shared<TgBot::BotCommand>();
+    commandMenu->command = "menu";
+    commandMenu->description = u8"Показать главное меню";
+
+    auto commandCart = std::make_shared<TgBot::BotCommand>();
+    commandCart->command = "cart";
+    commandCart->description = u8"Просмотреть корзину";
+
+    commands.push_back(commandStart);
+    commands.push_back(commandMenu);
+    commands.push_back(commandCart);
+
+    telegramBot.getApi().setMyCommands(commands);
+
+
+
     // Обработка callback-запросов
     telegramBot.getEvents().onCallbackQuery([this](TgBot::CallbackQuery::Ptr query) {
         if (query->data == "catalog") {
@@ -36,6 +62,7 @@ Bot::Bot(const std::string& token) : telegramBot(token), currentState(std::make_
             telegramBot.getApi().answerCallbackQuery(query->id);
         }
         else if (query->data.rfind("category_", 0) == 0) {
+            telegramBot.getApi().deleteMessage(query->message->chat->id, query->message->messageId);
             std::string category = query->data.substr(9); // Получаем название категории
             currentState = std::make_shared<CategoryState>(telegramBot, category, products);
             currentState->handleStart(query->message);    
@@ -59,6 +86,17 @@ Bot::Bot(const std::string& token) : telegramBot(token), currentState(std::make_
             telegramBot.getApi().answerCallbackQuery(query->id);
             // добавить кнопку моя корзина
         }
+        else if (query->data == "back_to_catalog") {
+            telegramBot.getApi().deleteMessage(query->message->chat->id, query->message->messageId);
+            currentState = std::make_shared<CatalogState>(telegramBot, categories, products);
+            currentState->handleStart(query->message);
+            telegramBot.getApi().answerCallbackQuery(query->id);
+        }
+        else if (query->data == "cart") {
+            this->showCart(query->message);
+            telegramBot.getApi().answerCallbackQuery(query->id);
+        }
+        
         // добавить обработку очитски и просмотра корзины
         else {
             currentState->handleMenuQ(query); // Обработка запросов в соответствующих меню

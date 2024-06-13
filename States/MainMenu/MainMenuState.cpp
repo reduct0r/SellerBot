@@ -31,6 +31,11 @@ void StartState::handleStart(TgBot::Message::Ptr message) {
     keyboard->inlineKeyboard.push_back(row2);
 
     bot.getApi().sendMessage(chatId, u8"Привет! Выберите одну из опций ниже:", false, 0, keyboard);
+
+    if (!bot.getApi().getChat(chatId)->pinnedMessage)
+    {
+        bot.getApi().pinChatMessage(chatId, message->messageId+1);
+    }
 }
 
 void StartState::handleMenu(TgBot::Message::Ptr message) {
