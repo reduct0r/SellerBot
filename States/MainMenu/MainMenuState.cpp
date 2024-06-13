@@ -2,7 +2,6 @@
 
 #include "MainMenuState.h"
 #include "../Catalog/CatalogState.h"
-#include "../Cart/CartState.h"
 #include <tgbot/tgbot.h>
 #include <iostream>
 
@@ -38,6 +37,10 @@ void StartState::handleMenu(TgBot::Message::Ptr message) {
     handleStart(message); // просто вызываем тот же метод, что и при /start
 }
 
+void StartState::handleMenuQ(TgBot::CallbackQuery::Ptr query)
+{
+}
+
 MenuState::MenuState(TgBot::Bot& bot) : bot(bot) { }
 
 void MenuState::handleStart(TgBot::Message::Ptr message) {
@@ -46,4 +49,8 @@ void MenuState::handleStart(TgBot::Message::Ptr message) {
 
 void MenuState::handleMenu(TgBot::Message::Ptr message) {
     handleStart(message); // просто вызываем тот же метод, что и при /start
+}
+
+void MenuState::handleMenuQ(TgBot::CallbackQuery::Ptr query)
+{
 }

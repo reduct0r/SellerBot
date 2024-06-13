@@ -4,6 +4,7 @@
 #include "../States/Catalog/CatalogState.h"
 #include "../States/Category/CategoryState.h"
 
+
 // Примерный список продуктов
 std::vector<Product> products = {
     Product("Printer1", "Printers", 100.0, 10, u8"Описание", u8"Характеристики", u8"Доставка", "https://ir.ozone.ru/s3/multimedia-9/6693430473.jpg"),
@@ -11,9 +12,12 @@ std::vector<Product> products = {
     Product("Printer2", "Printers", 200.0, 8, u8"Описание", u8"Характеристики", u8"Доставка", "https://ir.ozone.ru/s3/multimedia-9/6693430473.jpg")
 };
 
+// Примерный список категорий
 std::vector<std::string> categories = { "Printers", "Scanners" };
 
+
 Bot::Bot(const std::string& token) : telegramBot(token), currentState(std::make_shared<StartState>(telegramBot)) {
+
     telegramBot.getEvents().onCommand("start", [this](TgBot::Message::Ptr message) {
         currentState = std::make_shared<StartState>(telegramBot);                   // сброс стейта
         currentState->handleStart(message);
@@ -34,38 +38,7 @@ Bot::Bot(const std::string& token) : telegramBot(token), currentState(std::make_
         else if (query->data.rfind("category_", 0) == 0) {
             std::string category = query->data.substr(9); // Получаем название категории
             currentState = std::make_shared<CategoryState>(telegramBot, category, products);
-            currentState->handleStart(query->message);
-            telegramBot.getApi().answerCallbackQuery(query->id);
-        }
-        else if (query->data.rfind("product_", 0) == 0) {
-            std::string productName = query->data.substr(8); // Получаем имя продукта
-            auto it = std::find_if(products.begin(), products.end(), [&productName](const Product& product) {
-                return product.getName() == productName;
-                });
-
-            if (it != products.end()) {
-                const Product& product = *it;
-                TgBot::InlineKeyboardMarkup::Ptr keyboard(new TgBot::InlineKeyboardMarkup);
-                std::vector<TgBot::InlineKeyboardButton::Ptr> buttons;
-
-                TgBot::InlineKeyboardButton::Ptr addToCartButton(new TgBot::InlineKeyboardButton);
-                addToCartButton->text = u8"Добавить в корзину";
-                addToCartButton->callbackData = "add_to_cart_" + productName;
-                buttons.push_back(addToCartButton);
-
-                TgBot::InlineKeyboardButton::Ptr backButton(new TgBot::InlineKeyboardButton);
-                backButton->text = u8"Назад";
-                backButton->callbackData = "back_to_category_" + product.getCategory();
-                buttons.push_back(backButton);
-
-                keyboard->inlineKeyboard.push_back(buttons);
-
-                // Отправка сообщения с фотографией, описанием, названием и ценой
-                telegramBot.getApi().sendPhoto(query->message->chat->id, product.getImageUrl(),
-                    product.getName() + "\n" + product.getDescription() + u8"\nЦена: " + std::to_string(product.getPrice()), 0, keyboard);
-
-                telegramBot.getApi().answerCallbackQuery(query->id);
-            }
+            currentState->handleStart(query->message);    
         }
         else if (query->data.rfind("back_to_category_", 0) == 0) {
             std::string category = query->data.substr(17);
@@ -73,8 +46,24 @@ Bot::Bot(const std::string& token) : telegramBot(token), currentState(std::make_
             currentState->handleStart(query->message);
             telegramBot.getApi().answerCallbackQuery(query->id);
         }
+        else if (query->data.rfind("add_to_cart_", 0) == 0) {
+            std::string productName = query->data.substr(12); // Получаем имя продукта
+            auto it = std::find_if(products.begin(), products.end(), [&productName](const Product& product) {
+                return product.getName() == productName;
+                });
 
-        // Здесь можно добавить обработку callback для продуктов
+            if (it != products.end()) {
+                this->cart.addToCart(*it);
+                this->telegramBot.getApi().sendMessage(query->message->chat->id, productName + u8" x 1\nДобавлено в корзину");
+            }
+            telegramBot.getApi().answerCallbackQuery(query->id);
+            // добавить кнопку моя корзина
+        }
+        // добавить обработку очитски и просмотра корзины
+        else {
+            currentState->handleMenuQ(query); // Обработка запросов в соответствующих меню
+        }
+
         });
 }
 
@@ -89,3 +78,33 @@ void Bot::run() {
         printf("error: %s\n", e.what());
     }
 }
+
+// Cart
+Cart::Cart(std::vector<Product> listOfProducts, double sumOfCart) :
+    listOfProducts(listOfProducts), sumOfCart(sumOfCart) {}
+
+Cart::Cart() {}
+
+void Cart::addToCart(const Product& product) {
+    this->listOfProducts.push_back(product);
+}
+
+void Cart::clearCart(TgBot::Message::Ptr message){
+    this->listOfProducts.clear();
+}
+
+void Bot::showCart(TgBot::Message::Ptr message) {
+
+    std::string cartDetails;
+
+    for (const auto& product : this->cart.listOfProducts) {
+        cartDetails += product.getName() + " - " + std::to_string(product.getPrice()) + "\n";
+    }
+
+    if (this->cart.listOfProducts.empty()) {
+        cartDetails = u8"Ваша корзина пуста.";
+    }
+
+    this->telegramBot.getApi().sendMessage(message->chat->id, cartDetails);
+}
+

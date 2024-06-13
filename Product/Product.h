@@ -1,5 +1,3 @@
-#ifndef PRODUCT_H
-#define PRODUCT_H
 #pragma once
 #include <string>
 
@@ -27,5 +25,3 @@ private:
     std::string deliveryInfo;
     std::string imageUrl;
 };
-
-#endif // PRODUCT_H

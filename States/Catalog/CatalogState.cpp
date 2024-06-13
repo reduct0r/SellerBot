@@ -21,6 +21,10 @@ void CatalogState::handleStart(TgBot::Message::Ptr message) {
     bot.getApi().sendMessage(chatId, u8"Категории продуктов:", false, 0, keyboard);
 }
 
+void CatalogState::handleMenuQ(TgBot::CallbackQuery::Ptr query) {
+
+}
+
 void CatalogState::handleMenu(TgBot::Message::Ptr message) {
-    // Реализуйте это, если нужно навигировать внутри меню.
+
 }

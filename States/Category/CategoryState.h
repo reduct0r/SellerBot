@@ -4,17 +4,19 @@
 #include "../../Product/Product.h"
 #include <vector>
 
-
 class CategoryState : public TelegramState {
 public:
+
     CategoryState(TgBot::Bot& bot, const std::string& category, const std::vector<Product>& products);
 
     void handleStart(TgBot::Message::Ptr message) override;
     void handleMenu(TgBot::Message::Ptr message) override;
+    void handleMenuQ(TgBot::CallbackQuery::Ptr query) override;
 
 private:
     TgBot::Bot& bot;
     std::string category;
     std::vector<Product> products;
+
 };
 
