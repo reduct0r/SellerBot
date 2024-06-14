@@ -13,9 +13,9 @@ void CategoryState::handleStart(TgBot::Message::Ptr message) {
     TgBot::InlineKeyboardButton::Ptr button1(new TgBot::InlineKeyboardButton);
     TgBot::InlineKeyboardButton::Ptr button2(new TgBot::InlineKeyboardButton);
 
-    button1->text = u8"Назад в каталог"; // реализовать
+    button1->text = u8"Назад в каталог";
     button1->callbackData = "back_to_catalog";
-    button2->text = u8"Фильтры"; // реализовать
+    button2->text = u8"Фильтры";
     button2->callbackData = "sort";
 
     row1.push_back(button1);
@@ -90,7 +90,7 @@ void CategoryState::handleMenuQ(TgBot::CallbackQuery::Ptr query)
         bot.getApi().answerCallbackQuery(query->id);
     }
     else if (query->data == "sort_price_asc") {
-        bot.getApi().deleteMessage(query->message->chat->id, query->message->messageId-1);
+        bot.getApi().deleteMessage(query->message->chat->id, query->message->messageId - 1);
         sortProducts(true);
         bot.getApi().deleteMessage(query->message->chat->id, query->message->messageId);
         handleStart(query->message);

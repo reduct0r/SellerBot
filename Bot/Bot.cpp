@@ -3,6 +3,7 @@
 #include <iostream>
 #include "../States/Catalog/CatalogState.h"
 #include "../States/Category/CategoryState.h"
+#include <map>
 
 
 // Примерный список продуктов
@@ -52,8 +53,6 @@ Bot::Bot(const std::string& token) : telegramBot(token), currentState(std::make_
 
     telegramBot.getApi().setMyCommands(commands);
 
-
-
     // Обработка callback-запросов
     telegramBot.getEvents().onCallbackQuery([this](TgBot::CallbackQuery::Ptr query) {
         if (query->data == "catalog") {
@@ -84,7 +83,6 @@ Bot::Bot(const std::string& token) : telegramBot(token), currentState(std::make_
                 this->telegramBot.getApi().sendMessage(query->message->chat->id, productName + u8" x 1\nДобавлено в корзину");
             }
             telegramBot.getApi().answerCallbackQuery(query->id);
-            // добавить кнопку моя корзина
         }
         else if (query->data == "back_to_catalog") {
             telegramBot.getApi().deleteMessage(query->message->chat->id, query->message->messageId);
@@ -96,8 +94,17 @@ Bot::Bot(const std::string& token) : telegramBot(token), currentState(std::make_
             this->showCart(query->message);
             telegramBot.getApi().answerCallbackQuery(query->id);
         }
+        else if (query->data == "clear_cart") {
+            telegramBot.getApi().answerCallbackQuery(query->id);
+            this->telegramBot.getApi().editMessageText(u8"Корзина очищена", query->message->chat->id, query->message->messageId);
+            cart.clearCart(query->message);
+        }
+        else if (query->data == "checkout") {
+            // ОФОРМЛЕНИЕ
+
+        }
         
-        // добавить обработку очитски и просмотра корзины
+        // добавить обработку очитски и оформления
         else {
             currentState->handleMenuQ(query); // Обработка запросов в соответствующих меню
         }
@@ -133,16 +140,45 @@ void Cart::clearCart(TgBot::Message::Ptr message){
 
 void Bot::showCart(TgBot::Message::Ptr message) {
 
-    std::string cartDetails;
+    // Создаем хранилище для подсчета товаров
+    std::map<std::string, std::pair<int, double>> productMap; // <название товара, <количество, общая стоимость>>
 
     for (const auto& product : this->cart.listOfProducts) {
-        cartDetails += product.getName() + " - " + std::to_string(product.getPrice()) + "\n";
+        auto& productEntry = productMap[product.getName()];
+        productEntry.first += 1; // Увеличиваем количество
+        productEntry.second += product.getPrice(); // Прибавляем к общей сумме
     }
 
-    if (this->cart.listOfProducts.empty()) {
+    // Формируем детали корзины на основе подсчитанной информации
+    std::string cartDetails;
+
+    for (const auto& entry : productMap) {
+        cartDetails += entry.first + " x" + std::to_string(entry.second.first) + " - " +
+            std::to_string(entry.second.second) + u8" руб.\n";
+    }
+
+    if (productMap.empty()) {
         cartDetails = u8"Ваша корзина пуста.";
+        this->telegramBot.getApi().sendMessage(message->chat->id, cartDetails, false, 0);
     }
+    else {
+        // Создаем инлайн-клавиатуру
+        TgBot::InlineKeyboardMarkup::Ptr keyboard(new TgBot::InlineKeyboardMarkup);
 
-    this->telegramBot.getApi().sendMessage(message->chat->id, cartDetails);
+        // Кнопка "Очистить корзину"
+        TgBot::InlineKeyboardButton::Ptr clearButton(new TgBot::InlineKeyboardButton);
+        clearButton->text = u8"Очистить корзину";
+        clearButton->callbackData = "clear_cart";
+        keyboard->inlineKeyboard.push_back({ clearButton });
+
+        // Кнопка "Оформить заказ"
+        TgBot::InlineKeyboardButton::Ptr orderButton(new TgBot::InlineKeyboardButton);
+        orderButton->text = u8"Оформить заказ";
+        orderButton->callbackData = "checkout";
+        keyboard->inlineKeyboard.push_back({ orderButton });
+
+        // Отправляем сообщение с инлайн-клавиатурой
+        this->telegramBot.getApi().sendMessage(message->chat->id, cartDetails, false, 0, keyboard);
+    }
 }
 

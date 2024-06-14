@@ -21,12 +21,20 @@ set(SOURCES
     "main.cpp"
     "Product/Product.cpp"
     "Bot/Bot.cpp"
- "State/State.cpp" "States/MainMenu/MainMenuState.cpp" "States/Catalog/CatalogState.cpp"  "States/Category/CategoryState.cpp")
+    "State/State.cpp"
+    "States/MainMenu/MainMenuState.cpp"
+    "States/Catalog/CatalogState.cpp"
+    "States/Category/CategoryState.cpp"
+)
 
 set(HEADERS
     "Product/Product.h"
     "Bot/Bot.h"
- "State/State.h" "States/MainMenu/MainMenuState.h" "States/Catalog/CatalogState.h"  "States/Category/CategoryState.h")
+    "State/State.h"
+    "States/MainMenu/MainMenuState.h"
+    "States/Catalog/CatalogState.h"
+    "States/Category/CategoryState.h"
+)
 
 add_executable(SellerBot ${SOURCES} ${HEADERS})
 
