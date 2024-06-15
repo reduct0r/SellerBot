@@ -16,9 +16,14 @@ std::vector<Product> products = {
 // Примерный список категорий
 std::vector<std::string> categories = { "Printers", "Scanners" };
 
+int getMessageAgeInSeconds(TgBot::Message::Ptr message) {
+    std::time_t current_time = std::time(nullptr);
+    return static_cast<int>(current_time - message->date);
+}
 
 Bot::Bot(const std::string& token) : telegramBot(token), currentState(std::make_shared<StartState>(telegramBot)) {
 
+    // Инициализация команд для меню бота
     telegramBot.getEvents().onCommand("start", [this](TgBot::Message::Ptr message) {
         currentState = std::make_shared<StartState>(telegramBot);                   // сброс стейта
         currentState->handleStart(message);
@@ -33,7 +38,7 @@ Bot::Bot(const std::string& token) : telegramBot(token), currentState(std::make_
         this->showCart(message);
         });
 
-    // Установка команд для меню бота:
+    // Установка команд для меню бота
     std::vector<TgBot::BotCommand::Ptr> commands;
     auto commandStart = std::make_shared<TgBot::BotCommand>();
     commandStart->command = "start";
@@ -55,24 +60,30 @@ Bot::Bot(const std::string& token) : telegramBot(token), currentState(std::make_
 
     // Обработка callback-запросов
     telegramBot.getEvents().onCallbackQuery([this](TgBot::CallbackQuery::Ptr query) {
-        if (query->data == "catalog") {
+
+        if (getMessageAgeInSeconds(query->message) > 60) { // Если сообщение старше 60 секунд
+            this->telegramBot.getApi().sendMessage(query->message->chat->id, u8"Данное сообщение устарело. Пожалуйста, попробуйте заново зайти в соотвествующее меню.");
+            telegramBot.getApi().answerCallbackQuery(query->id);
+            return; // Пропускаем старый callback-запрос
+        }
+        else if (query->data == "catalog") { // список категорий
             currentState = std::make_shared<CatalogState>(telegramBot, categories, products); 
             currentState->handleStart(query->message);
             telegramBot.getApi().answerCallbackQuery(query->id);
         }
-        else if (query->data.rfind("category_", 0) == 0) {
+        else if (query->data.rfind("category_", 0) == 0) { // список товаров в категории
             telegramBot.getApi().deleteMessage(query->message->chat->id, query->message->messageId);
             std::string category = query->data.substr(9); // Получаем название категории
             currentState = std::make_shared<CategoryState>(telegramBot, category, products);
             currentState->handleStart(query->message);    
         }
-        else if (query->data.rfind("back_to_category_", 0) == 0) {
+        else if (query->data.rfind("back_to_category_", 0) == 0) { // кнопка назад из товара
             std::string category = query->data.substr(17);
             currentState = std::make_shared<CategoryState>(telegramBot, category, products);
             currentState->handleStart(query->message);
             telegramBot.getApi().answerCallbackQuery(query->id);
         }
-        else if (query->data.rfind("add_to_cart_", 0) == 0) {
+        else if (query->data.rfind("add_to_cart_", 0) == 0) { // добавить в корзину
             std::string productName = query->data.substr(12); // Получаем имя продукта
             auto it = std::find_if(products.begin(), products.end(), [&productName](const Product& product) {
                 return product.getName() == productName;
@@ -80,31 +91,30 @@ Bot::Bot(const std::string& token) : telegramBot(token), currentState(std::make_
 
             if (it != products.end()) {
                 this->cart.addToCart(*it);
-                this->telegramBot.getApi().sendMessage(query->message->chat->id, productName + u8" x 1\nДобавлено в корзину");
+                this->telegramBot.getApi().sendMessage(query->message->chat->id, "<b>" + productName + "</b>" + u8" x 1\nДобавлено в корзину", false, 0, nullptr, "HTML");
             }
             telegramBot.getApi().answerCallbackQuery(query->id);
         }
-        else if (query->data == "back_to_catalog") {
+        else if (query->data == "back_to_catalog") { // назад из товаров
             telegramBot.getApi().deleteMessage(query->message->chat->id, query->message->messageId);
             currentState = std::make_shared<CatalogState>(telegramBot, categories, products);
             currentState->handleStart(query->message);
             telegramBot.getApi().answerCallbackQuery(query->id);
         }
-        else if (query->data == "cart") {
+        else if (query->data == "cart") { // моя корзина
             this->showCart(query->message);
             telegramBot.getApi().answerCallbackQuery(query->id);
         }
-        else if (query->data == "clear_cart") {
+        else if (query->data == "clear_cart") { // очистить корзину
             telegramBot.getApi().answerCallbackQuery(query->id);
             this->telegramBot.getApi().editMessageText(u8"Корзина очищена", query->message->chat->id, query->message->messageId);
             cart.clearCart(query->message);
         }
-        else if (query->data == "checkout") {
-            // ОФОРМЛЕНИЕ
+        else if (query->data == "checkout") { // оформление заказа
+            
 
         }
-        
-        // добавить обработку очитски и оформления
+
         else {
             currentState->handleMenuQ(query); // Обработка запросов в соответствующих меню
         }
@@ -115,12 +125,13 @@ Bot::Bot(const std::string& token) : telegramBot(token), currentState(std::make_
 void Bot::run() {
     try {
         TgBot::TgLongPoll longPoll(telegramBot);
+        std::cout << "Bot started: Telegram connettion ready\n";
         while (true) {
             longPoll.start();
         }
     }
     catch (std::exception& e) {
-        printf("error: %s\n", e.what());
+        printf("Bot stopped with error: %s\n", e.what());
     }
 }
 
@@ -128,7 +139,9 @@ void Bot::run() {
 Cart::Cart(std::vector<Product> listOfProducts, double sumOfCart) :
     listOfProducts(listOfProducts), sumOfCart(sumOfCart) {}
 
-Cart::Cart() {}
+Cart::Cart() {
+    this->sumOfCart = 0;
+}
 
 void Cart::addToCart(const Product& product) {
     this->listOfProducts.push_back(product);
@@ -147,19 +160,23 @@ void Bot::showCart(TgBot::Message::Ptr message) {
         auto& productEntry = productMap[product.getName()];
         productEntry.first += 1; // Увеличиваем количество
         productEntry.second += product.getPrice(); // Прибавляем к общей сумме
+        this->cart.sumOfCart += product.getPrice();
     }
 
     // Формируем детали корзины на основе подсчитанной информации
     std::string cartDetails;
-
+    cartDetails = u8"<i>Ваша корзина:</i>\n";
     for (const auto& entry : productMap) {
+        std::string str = std::to_string(entry.second.second);
         cartDetails += entry.first + " x" + std::to_string(entry.second.first) + " - " +
-            std::to_string(entry.second.second) + u8" руб.\n";
+            str.erase(str.find_last_not_of('0') + 2, std::string::npos) + u8" руб\n";
     }
+    cartDetails += u8"\n<b>Итого:</b> " + std::to_string(this->cart.sumOfCart).erase(std::to_string(this->cart.sumOfCart).find_last_not_of('0') + 2, std::string::npos) +
+        u8" руб";
 
     if (productMap.empty()) {
-        cartDetails = u8"Ваша корзина пуста.";
-        this->telegramBot.getApi().sendMessage(message->chat->id, cartDetails, false, 0);
+        cartDetails = u8"<i>Ваша корзина пуста.</i>";
+        this->telegramBot.getApi().sendMessage(message->chat->id, cartDetails, false, 0, nullptr, "HTML");
     }
     else {
         // Создаем инлайн-клавиатуру
@@ -178,7 +195,7 @@ void Bot::showCart(TgBot::Message::Ptr message) {
         keyboard->inlineKeyboard.push_back({ orderButton });
 
         // Отправляем сообщение с инлайн-клавиатурой
-        this->telegramBot.getApi().sendMessage(message->chat->id, cartDetails, false, 0, keyboard);
+        this->telegramBot.getApi().sendMessage(message->chat->id, cartDetails, false, 0, keyboard, "HTML");
     }
 }
 
