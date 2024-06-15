@@ -3,6 +3,8 @@
   "version-string": "0.1.0",
   "dependencies": [
     "tgbot-cpp",
-    "jsoncpp"
+    "jsoncpp",
+    "libpqxx",
+    "openssl"
   ]
 }

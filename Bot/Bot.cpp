@@ -1,18 +1,11 @@
 ﻿#include "Bot.h"
-#include "../States/MainMenu/MainMenuState.h"
 #include <iostream>
+#include <map>
+#include "../States/MainMenu/MainMenuState.h"
 #include "../States/Catalog/CatalogState.h"
 #include "../States/Category/CategoryState.h"
 #include "../States/CheckOut/CheckOutState.h"
-#include <map>
-
-
-// Примерный список продуктов
-std::vector<Product> products = {
-    Product("Printer1", "Printers", 100.0, 10, u8"Описание", u8"Характеристики", u8"Доставка", "https://ir.ozone.ru/s3/multimedia-9/6693430473.jpg"),
-    Product("Scanner1", "Scanners", 150.0, 5, u8"Описание", u8"Характеристики", u8"Доставка", "https://ir.ozone.ru/s3/multimedia-9/6693430473.jpg"),
-    Product("Printer2", "Printers", 200.0, 8, u8"Описание", u8"Характеристики", u8"Доставка", "https://ir.ozone.ru/s3/multimedia-9/6693430473.jpg")
-};
+#include "../DataBase/DataBase.h"
 
 // Примерный список категорий
 std::vector<std::string> categories = { "Printers", "Scanners" };
@@ -139,10 +132,13 @@ Bot::Bot(const std::string& token) : telegramBot(token), currentState(std::make_
     });
 }
 
-void Bot::run() {
+void Bot::run(std::string connectionString) {
     try {
         TgBot::TgLongPoll longPoll(telegramBot);
         std::cout << "Bot started: Telegram connettion ready\n";
+        
+        this->products = fetchProductsFromDb(connectionString);
+
         while (true) {
             longPoll.start();
         }
@@ -169,10 +165,11 @@ void Cart::addToCart(const Product& product) {
 
 void Cart::clearCart(TgBot::Message::Ptr message){
     this->listOfProducts.clear();
+    this->sumOfCart = 0;
 }
 
 void Bot::showCart(TgBot::Message::Ptr message) {
-
+    this->cart.sumOfCart = 0;
     // Создаем хранилище для подсчета товаров
     std::map<std::string, std::pair<int, double>> productMap; // <название товара, <количество, общая стоимость>>
 

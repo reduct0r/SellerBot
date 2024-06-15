@@ -34,7 +34,7 @@ public:
 class Bot {
 public:
     Bot(const std::string& token);
-    void run();
+    void run(std::string connectionString);
     void showCart(TgBot::Message::Ptr message);
 
 private:
@@ -42,4 +42,5 @@ private:
     std::shared_ptr<TelegramState> currentState;
     Cart cart;  // корзина
     InputState inputState;
+    std::vector<Product> products;
 };
