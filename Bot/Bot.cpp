@@ -143,6 +143,8 @@ void Bot::run(std::string connectionString) {
         TgBot::TgLongPoll longPoll(telegramBot);
         std::cout << "Bot started: Telegram connettion ready\n";
         
+        this->products = fetchProductsFromDb(connectionString);
+
         while (true) {
             longPoll.start();
         }

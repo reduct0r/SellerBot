@@ -21,16 +21,30 @@ std::vector<Product> fetchProductsFromDb(const std::string& connectionString) {
 
                 // Parsing JSON from specs column
                 Json::Value specsJson;
-                Json::Reader reader;
-                if (!reader.parse(row["specs"].c_str(), specsJson)) {
-                    std::cerr << "Error parsing JSON from specs column" << std::endl;
+                Json::CharReaderBuilder readerBuilder;
+                std::string parseErrors;
+                std::string specsData = row["specs"].c_str();
+                std::istringstream specsStream(specsData);
+
+                if (!Json::parseFromStream(readerBuilder, specsStream, &specsJson, &parseErrors)) {
+                    std::cerr << "Error parsing JSON from specs column: " << parseErrors << std::endl;
                     continue;
                 }
 
-                // Formatting characteristics string
                 std::string characteristics = "";
-                for (const auto& key : specsJson.getMemberNames()) {
-                    characteristics += " " + key + " : " + specsJson[key].asString() + "\n";
+
+                if (specsJson.isObject()) {
+                    for (const auto& key : specsJson.getMemberNames()) {
+                        characteristics += "<i>" + key + "</i>:\n";
+                        Json::Value subGroup = specsJson[key];
+                        for (const auto& subKey : subGroup.getMemberNames()) {
+                            characteristics += "  " + subKey + ": " + subGroup[subKey].asString() + "\n";
+                        }
+                    }
+                }
+                else {
+                    std::cerr << "Expected JSON object in 'specs' but found different type." << std::endl;
+                    continue;
                 }
 
                 std::string deliveryInfo = std::to_string(row["delivery"].as<int>());
