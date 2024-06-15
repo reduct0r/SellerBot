@@ -85,8 +85,14 @@ Bot::Bot(const std::string& token) : telegramBot(token), currentState(std::make_
                 });
 
             if (it != products.end()) {
-                this->cart.addToCart(*it);
-                this->telegramBot.getApi().sendMessage(query->message->chat->id, "<b>" + productName + "</b>" + u8" x 1\nДобавлено в корзину", false, 0, nullptr, "HTML");
+                if (it->getAvailableQuantity() <= 0) {
+                    this->telegramBot.getApi().sendMessage(query->message->chat->id,
+                        u8"Извините, товара нет в наличии😥", false, 0, nullptr, "HTML");
+                }
+                else {
+                    this->cart.addToCart(*it);
+                    this->telegramBot.getApi().sendMessage(query->message->chat->id, "<b>" + productName + "</b>" + u8" x 1\nДобавлено в корзину", false, 0, nullptr, "HTML");
+                }
             }
             telegramBot.getApi().answerCallbackQuery(query->id);
         }
@@ -137,8 +143,6 @@ void Bot::run(std::string connectionString) {
         TgBot::TgLongPoll longPoll(telegramBot);
         std::cout << "Bot started: Telegram connettion ready\n";
         
-        this->products = fetchProductsFromDb(connectionString);
-
         while (true) {
             longPoll.start();
         }

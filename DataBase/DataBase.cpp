@@ -26,7 +26,12 @@ std::vector<Product> fetchProductsFromDb(const std::string& connectionString) {
                     std::cerr << "Error parsing JSON from specs column" << std::endl;
                     continue;
                 }
-                std::string characteristics = specsJson.toStyledString();
+
+                // Formatting characteristics string
+                std::string characteristics = "";
+                for (const auto& key : specsJson.getMemberNames()) {
+                    characteristics += " " + key + " : " + specsJson[key].asString() + "\n";
+                }
 
                 std::string deliveryInfo = std::to_string(row["delivery"].as<int>());
                 std::string imageUrl = row["link"].c_str();
