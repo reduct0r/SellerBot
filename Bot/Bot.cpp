@@ -42,7 +42,7 @@ Bot::Bot(const std::string& token) : telegramBot(token), currentState(std::make_
     std::vector<TgBot::BotCommand::Ptr> commands;
     auto commandStart = std::make_shared<TgBot::BotCommand>();
     commandStart->command = "start";
-    commandStart->description = u8"Начать работу с ботом";
+    commandStart->description = u8"Начать";
 
     auto commandMenu = std::make_shared<TgBot::BotCommand>();
     commandMenu->command = "menu";
@@ -50,7 +50,7 @@ Bot::Bot(const std::string& token) : telegramBot(token), currentState(std::make_
 
     auto commandCart = std::make_shared<TgBot::BotCommand>();
     commandCart->command = "cart";
-    commandCart->description = u8"Просмотреть корзину";
+    commandCart->description = u8"🛒 Просмотреть корзину";
 
     commands.push_back(commandStart);
     commands.push_back(commandMenu);
@@ -184,13 +184,13 @@ void Bot::showCart(TgBot::Message::Ptr message) {
 
         // Кнопка "Очистить корзину"
         TgBot::InlineKeyboardButton::Ptr clearButton(new TgBot::InlineKeyboardButton);
-        clearButton->text = u8"Очистить корзину";
+        clearButton->text = u8"🗑️ Очистить корзину";
         clearButton->callbackData = "clear_cart";
         keyboard->inlineKeyboard.push_back({ clearButton });
 
         // Кнопка "Оформить заказ"
         TgBot::InlineKeyboardButton::Ptr orderButton(new TgBot::InlineKeyboardButton);
-        orderButton->text = u8"Оформить заказ";
+        orderButton->text = u8"🛍️ Оформить заказ";
         orderButton->callbackData = "checkout";
         keyboard->inlineKeyboard.push_back({ orderButton });
 
