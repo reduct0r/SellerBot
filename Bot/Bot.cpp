@@ -3,6 +3,7 @@
 #include <iostream>
 #include "../States/Catalog/CatalogState.h"
 #include "../States/Category/CategoryState.h"
+#include "../States/CheckOut/CheckOutState.h"
 #include <map>
 
 
@@ -22,7 +23,8 @@ int getMessageAgeInSeconds(TgBot::Message::Ptr message) {
 }
 
 Bot::Bot(const std::string& token) : telegramBot(token), currentState(std::make_shared<StartState>(telegramBot)) {
-
+    
+    this->inputState = NONE;
     // Инициализация команд для меню бота
     telegramBot.getEvents().onCommand("start", [this](TgBot::Message::Ptr message) {
         currentState = std::make_shared<StartState>(telegramBot);                   // сброс стейта
@@ -31,7 +33,7 @@ Bot::Bot(const std::string& token) : telegramBot(token), currentState(std::make_
 
     telegramBot.getEvents().onCommand("menu", [this](TgBot::Message::Ptr message) {
         currentState = std::make_shared<StartState>(telegramBot);                   // сброс стейта
-        currentState->handleMenu(message);
+        currentState->handleStart(message);
         });
 
     telegramBot.getEvents().onCommand("cart", [this](TgBot::Message::Ptr message) {
@@ -46,11 +48,11 @@ Bot::Bot(const std::string& token) : telegramBot(token), currentState(std::make_
 
     auto commandMenu = std::make_shared<TgBot::BotCommand>();
     commandMenu->command = "menu";
-    commandMenu->description = u8"Показать главное меню";
+    commandMenu->description = u8"Меню";
 
     auto commandCart = std::make_shared<TgBot::BotCommand>();
     commandCart->command = "cart";
-    commandCart->description = u8"🛒 Просмотреть корзину";
+    commandCart->description = u8"Моя корзина 🛒";
 
     commands.push_back(commandStart);
     commands.push_back(commandMenu);
@@ -110,16 +112,31 @@ Bot::Bot(const std::string& token) : telegramBot(token), currentState(std::make_
             this->telegramBot.getApi().editMessageText(u8"Корзина очищена", query->message->chat->id, query->message->messageId);
             cart.clearCart(query->message);
         }
-        else if (query->data == "checkout") { // оформление заказа
-            
-
+        else if (query->data == "checkout") {
+            currentState = std::make_shared<CheckoutState>(telegramBot, cart, inputState);
+            currentState->handleStart(query->message);
+            telegramBot.getApi().answerCallbackQuery(query->id);
         }
-
+        else if (query->data == "confirm_order_yes") {
+            inputState = NONE;
+            telegramBot.getApi().editMessageText(u8"Ваш заказ подтвержден!\nВас уведомят о статусе заказа.", query->message->chat->id, query->message->messageId);
+            currentState = std::make_shared<StartState>(telegramBot);
+            telegramBot.getApi().answerCallbackQuery(query->id);
+        }
+        else if (query->data == "confirm_order_no") {
+            inputState = NONE;
+            telegramBot.getApi().editMessageText(u8"Заказ отменен.", query->message->chat->id, query->message->messageId);
+            currentState = std::make_shared<StartState>(telegramBot);
+            telegramBot.getApi().answerCallbackQuery(query->id);
+        }
         else {
             currentState->handleMenuQ(query); // Обработка запросов в соответствующих меню
         }
+    });
 
-        });
+    telegramBot.getEvents().onAnyMessage([this](TgBot::Message::Ptr message) {
+         currentState->handleMenu(message);
+    });
 }
 
 void Bot::run() {
@@ -137,10 +154,13 @@ void Bot::run() {
 
 // Cart
 Cart::Cart(std::vector<Product> listOfProducts, double sumOfCart) :
-    listOfProducts(listOfProducts), sumOfCart(sumOfCart) {}
+    listOfProducts(listOfProducts), sumOfCart(sumOfCart) {
+    this->sumOfCartS = std::to_string(this->sumOfCart).erase(std::to_string(this->sumOfCart).find_last_not_of('0') + 2, std::string::npos);
+}
 
 Cart::Cart() {
     this->sumOfCart = 0;
+    this->sumOfCartS = "";
 }
 
 void Cart::addToCart(const Product& product) {
@@ -162,7 +182,7 @@ void Bot::showCart(TgBot::Message::Ptr message) {
         productEntry.second += product.getPrice(); // Прибавляем к общей сумме
         this->cart.sumOfCart += product.getPrice();
     }
-
+    this->cart.sumOfCartS = std::to_string(this->cart.sumOfCart).erase(std::to_string(this->cart.sumOfCart).find_last_not_of('0') + 2, std::string::npos);
     // Формируем детали корзины на основе подсчитанной информации
     std::string cartDetails;
     cartDetails = u8"<i>Ваша корзина:</i>\n";
@@ -171,8 +191,7 @@ void Bot::showCart(TgBot::Message::Ptr message) {
         cartDetails += entry.first + " x" + std::to_string(entry.second.first) + " - " +
             str.erase(str.find_last_not_of('0') + 2, std::string::npos) + u8" руб\n";
     }
-    cartDetails += u8"\n<b>Итого:</b> " + std::to_string(this->cart.sumOfCart).erase(std::to_string(this->cart.sumOfCart).find_last_not_of('0') + 2, std::string::npos) +
-        u8" руб";
+    cartDetails += u8"\n<b>Итого:</b> " + this->cart.sumOfCartS + u8" руб";
 
     if (productMap.empty()) {
         cartDetails = u8"<i>Ваша корзина пуста.</i>";

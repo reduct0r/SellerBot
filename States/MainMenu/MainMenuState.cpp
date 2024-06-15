@@ -5,14 +5,11 @@
 #include <tgbot/tgbot.h>
 #include <iostream>
 
-
+// Стартовое меню
 StartState::StartState(TgBot::Bot& bot) : bot(bot) { }
 
 void StartState::handleStart(TgBot::Message::Ptr message) {
     auto chatId = message->chat->id;
-    //bot.getApi().sendMessage(chatId, u8"Привет! Выберите одну из опций ниже:", false, 0, TgBot::InlineKeyboardMarkup::Ptr(
-    //    new TgBot::InlineKeyboardMarkup()), "HTML");
-
     TgBot::InlineKeyboardMarkup::Ptr keyboard(new TgBot::InlineKeyboardMarkup);
     std::vector<TgBot::InlineKeyboardButton::Ptr> row0;
     row0.push_back(TgBot::InlineKeyboardButton::Ptr(new TgBot::InlineKeyboardButton));
@@ -39,23 +36,13 @@ void StartState::handleStart(TgBot::Message::Ptr message) {
 }
 
 void StartState::handleMenu(TgBot::Message::Ptr message) {
-    handleStart(message); // просто вызываем тот же метод, что и при /start
 }
 
 void StartState::handleMenuQ(TgBot::CallbackQuery::Ptr query)
 {
+    if (query->data == "support") { // поддержка
+        this->bot.getApi().sendMessage(query->message->chat->id, u8"Техническая поддержка: @support");
+        bot.getApi().answerCallbackQuery(query->id);
+    }
 }
 
-MenuState::MenuState(TgBot::Bot& bot) : bot(bot) { }
-
-void MenuState::handleStart(TgBot::Message::Ptr message) {
-    // Handle menu options if needed
-}
-
-void MenuState::handleMenu(TgBot::Message::Ptr message) {
-    handleStart(message); // просто вызываем тот же метод, что и при /start
-}
-
-void MenuState::handleMenuQ(TgBot::CallbackQuery::Ptr query)
-{
-}
