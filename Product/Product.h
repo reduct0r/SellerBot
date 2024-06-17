@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include <string>
 
 class Product {
@@ -6,6 +6,7 @@ public:
     Product(const std::string& name, const std::string& category, double price, int availableQuantity,
         const std::string& description, const std::string& characteristics, const std::string& deliveryInfo, const std::string& imageUrl);
 
+    // Геттеры параметров товара
     const std::string& getName() const;
     const std::string& getCategory() const;
     double getPrice() const;
@@ -15,7 +16,7 @@ public:
     const std::string& getDeliveryInfo() const;
     const std::string& getImageUrl() const;
 
-    void decrementQuantity();
+    void decrementQuantity(); // Уменьшение кол-во товара при заказе
 
 private:
     std::string name;

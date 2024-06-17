@@ -1,4 +1,4 @@
-#pragma once
+п»ї#pragma once
 #include <iostream>
 #include <map>
 #include <tgbot/tgbot.h>
@@ -6,6 +6,7 @@
 #include "../Product/Product.h"
 #include "../DataBase/DataBase.h"
 
+// РЎРѕСЃС‚РѕСЏРЅРёРµ РІРІРѕРґР° РґР°РЅРЅС‹С… РґР»СЏ РґРѕСЃС‚Р°РІРєРё
 enum InputState {
     NONE,
     MANUAL_INPUT_MAIN_ADDRESS,
@@ -14,6 +15,7 @@ enum InputState {
     GEOLOCATION_INPUT
 };
 
+// РЎС‚СЂСѓРєС‚СѓСЂР° РґР°РЅРЅС‹С… РґР»СЏ РґРѕСЃС‚Р°РІРєРё
 struct ShippingInfo
 {
     std::string mainAddress;
@@ -21,38 +23,39 @@ struct ShippingInfo
     std::string shippingComment;
 };
 
+// РљРѕСЂР·РёРЅР°
 class Cart
 {
 public:
     std::vector<Product> listOfProducts;
     double sumOfCart;
-    std::string sumOfCartS;
+    std::string sumOfCartS; // РЎСѓРјРјР° РєРѕСЂР·РёРЅР° С‚РёРїР° СЃС‚СЂРѕРєР°
 
     Cart();
     Cart(std::vector<Product> listOfProducts, double sumOfCart);
-    void clearCart(TgBot::Message::Ptr message);
-    void addToCart(const Product& product);
+    void clearCart(TgBot::Message::Ptr message); // РћС‡РёСЃС‚РёС‚СЊ РєРѕСЂР·РёРЅСѓ
+    void addToCart(const Product& product);      // Р”РѕР±Р°РІРёС‚СЊ РІ РєРѕСЂР·РёРЅСѓ
 };
 
 class Bot {
 public:
     Bot(const std::string& token, std::string connectionString);
     void run();
-    void showCart(TgBot::Message::Ptr message);
+    void showCart(TgBot::Message::Ptr message);  // РџРѕРєР°Р·Р°С‚СЊ РєРѕСЂР·РёРЅСѓ
 
 private:
     DataBase dataBase;
     TgBot::Bot telegramBot;
     std::shared_ptr<TelegramState> currentState;
-    Cart cart;  // корзина
+    Cart cart;  // РєРѕСЂР·РёРЅР°
     InputState inputState;
 
-    // Методы для инициализации компонентов и обработки событий.
-    int getMessageAgeInSeconds(TgBot::Message::Ptr message);  // Метод для получения возраста сообщения в секундах
-    void initializeCommands();  // Инициализация команд
-    void setBotCommands();  // Установить команды ботa
-    void handleCallbackQuery(TgBot::CallbackQuery::Ptr query);  // Обработка callback-запросов
-    void initializeEventHandlers();  // Инициализация обработчиков событий
+    // РњРµС‚РѕРґС‹ РґР»СЏ РёРЅРёС†РёР°Р»РёР·Р°С†РёРё РєРѕРјРїРѕРЅРµРЅС‚РѕРІ Рё РѕР±СЂР°Р±РѕС‚РєРё СЃРѕР±С‹С‚РёР№.
+    int getMessageAgeInSeconds(TgBot::Message::Ptr message);    // РњРµС‚РѕРґ РґР»СЏ РїРѕР»СѓС‡РµРЅРёСЏ РІРѕР·СЂР°СЃС‚Р° СЃРѕРѕР±С‰РµРЅРёСЏ РІ СЃРµРєСѓРЅРґР°С…
+    void initializeCommands();                                  // РРЅРёС†РёР°Р»РёР·Р°С†РёСЏ РєРѕРјР°РЅРґ
+    void setBotCommands();                                      // РЈСЃС‚Р°РЅРѕРІРёС‚СЊ РєРѕРјР°РЅРґС‹ Р±РѕС‚a
+    void handleCallbackQuery(TgBot::CallbackQuery::Ptr query);  // РћР±СЂР°Р±РѕС‚РєР° callback-Р·Р°РїСЂРѕСЃРѕРІ
+    void initializeEventHandlers();                             // РРЅРёС†РёР°Р»РёР·Р°С†РёСЏ РѕР±СЂР°Р±РѕС‚С‡РёРєРѕРІ СЃРѕР±С‹С‚РёР№
 };
 
-void SetConsoleWidth(int width);
+void SetConsoleWidth(int width); // РЈСЃС‚Р°РЅРѕРІРєР° С€РёСЂРёРЅС‹ РєРѕРЅСЃРѕР»Рё

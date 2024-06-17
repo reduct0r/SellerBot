@@ -1,7 +1,7 @@
 #include "DataBase.h"
 
 DataBase::DataBase(const std::string& connectionString) : connectionString(connectionString) {
-    this->categories = { "Printers", "Scanners" };
+    this->categories = { u8"Принтеры", u8"Сканеры" };
     this->products = fetchProductsFromDb();
     askModeAndInitialize();
 }

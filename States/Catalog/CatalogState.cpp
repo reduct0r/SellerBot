@@ -1,4 +1,4 @@
-#include "CatalogState.h"
+п»ї#include "CatalogState.h"
 #include "../MainMenu/MainMenuState.h"
 #include "../Category/CategoryState.h"
 
@@ -9,16 +9,17 @@ void CatalogState::handleStart(TgBot::Message::Ptr message) {
     auto chatId = message->chat->id;
     TgBot::InlineKeyboardMarkup::Ptr keyboard(new TgBot::InlineKeyboardMarkup);
 
+    // РЎРѕР·РґР°РЅРёРµ РєРЅРѕРїРѕРє СЃ РЅР°Р·РІР°РЅРёРµРј РєР°С‚РµРіРѕСЂРёР№ С‚РѕРІР°СЂРѕРІ
     for (const auto& category : categories) {
         std::vector<TgBot::InlineKeyboardButton::Ptr> row;
         TgBot::InlineKeyboardButton::Ptr button(new TgBot::InlineKeyboardButton);
         button->text = category;
-        button->callbackData = "category_" + category; // Уникальный идентификатор для категории
+        button->callbackData = "category_" + category; // РЈРЅРёРєР°Р»СЊРЅС‹Р№ РёРґРµРЅС‚РёС„РёРєР°С‚РѕСЂ РґР»СЏ РєР°С‚РµРіРѕСЂРёРё
         row.push_back(button);
         keyboard->inlineKeyboard.push_back(row);
     }
 
-    bot.getApi().sendMessage(chatId, u8"Категории продуктов:", false, 0, keyboard);
+    bot.getApi().sendMessage(chatId, u8"РљР°С‚РµРіРѕСЂРёРё РїСЂРѕРґСѓРєС‚РѕРІ:", false, 0, keyboard);
 }
 
 void CatalogState::handleMenuQ(TgBot::CallbackQuery::Ptr query, std::shared_ptr<TelegramState>& currentState, DataBase& dataBase) {
