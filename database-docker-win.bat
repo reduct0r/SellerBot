@@ -18,3 +18,5 @@ if %errorlevel% neq 0 (
 
 echo Docker container 'seller_bot' is up and running on port 5432
 pause
+
+

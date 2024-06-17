@@ -1,4 +1,5 @@
 #include "CheckOutState.h"
+#include "../MainMenu/MainMenuState.h"
 //#include <jcon/json.h>
 
 CheckoutState::CheckoutState(TgBot::Bot& bot, Cart& cart, InputState& inputState) : bot(bot), cart(cart), inputState(inputState){}
@@ -21,7 +22,7 @@ void CheckoutState::handleStart(TgBot::Message::Ptr message){
     bot.getApi().sendMessage(message->chat->id, u8"Выберите способ ввода адреса:", false, 0, keyboard);
 }
 
-void CheckoutState::handleMenuQ(TgBot::CallbackQuery::Ptr query)
+void CheckoutState::handleMenuQ(TgBot::CallbackQuery::Ptr query, std::shared_ptr<TelegramState>& currentState, DataBase& dataBase)
 {
     if (query->data == "manual_input") {
         bot.getApi().sendMessage(query->message->chat->id, u8"Введите основной адрес (страна, город, улица):");
@@ -34,6 +35,20 @@ void CheckoutState::handleMenuQ(TgBot::CallbackQuery::Ptr query)
         inputState = GEOLOCATION_INPUT;
         bot.getApi().answerCallbackQuery(query->id);
     }   
+    else if (query->data == "confirm_order_no") {
+        inputState = NONE;
+        bot.getApi().editMessageText(u8"Заказ отменен.", query->message->chat->id, query->message->messageId);
+        bot.getApi().answerCallbackQuery(query->id);
+        currentState = std::make_shared<StartState>(bot);
+    }
+    else if (query->data == "confirm_order_yes") {
+        inputState = NONE;
+        bot.getApi().editMessageText(u8"Ваш заказ подтвержден!\nВас уведомят о статусе заказа.", query->message->chat->id, query->message->messageId);
+        bot.getApi().answerCallbackQuery(query->id);
+        currentState = std::make_shared<StartState>(bot);
+    }
+
+
 }
 
 void CheckoutState::handleMenu(TgBot::Message::Ptr message)

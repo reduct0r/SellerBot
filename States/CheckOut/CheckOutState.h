@@ -6,8 +6,8 @@ public:
     explicit CheckoutState(TgBot::Bot& bot, Cart& cart, InputState& inputState);
 
     void handleStart(TgBot::Message::Ptr message) override;
+    void handleMenuQ(TgBot::CallbackQuery::Ptr query, std::shared_ptr<TelegramState>& currentState, DataBase& dataBase) override;
     void handleMenu(TgBot::Message::Ptr message) override;
-    void handleMenuQ(TgBot::CallbackQuery::Ptr query) override;
     void confirmOrder(TgBot::Message::Ptr message);
 
 private:

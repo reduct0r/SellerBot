@@ -1,23 +1,21 @@
 ﻿#include "Bot.h"
-#include <iostream>
-#include <map>
 #include "../States/MainMenu/MainMenuState.h"
 #include "../States/Catalog/CatalogState.h"
 #include "../States/Category/CategoryState.h"
 #include "../States/CheckOut/CheckOutState.h"
-#include "../DataBase/DataBase.h"
 
-// Примерный список категорий
-std::vector<std::string> categories = { "Printers", "Scanners" };
+
 
 int getMessageAgeInSeconds(TgBot::Message::Ptr message) {
     std::time_t current_time = std::time(nullptr);
     return static_cast<int>(current_time - message->date);
 }
 
-Bot::Bot(const std::string& token) : telegramBot(token), currentState(std::make_shared<StartState>(telegramBot)) {
+Bot::Bot(const std::string& token, std::string connectionString)
+    : dataBase(connectionString), telegramBot(token), currentState(std::make_shared<StartState>(telegramBot)) {
     
     this->inputState = NONE;
+
     // Инициализация команд для меню бота
     telegramBot.getEvents().onCommand("start", [this](TgBot::Message::Ptr message) {
         currentState = std::make_shared<StartState>(telegramBot);                   // сброс стейта
@@ -62,44 +60,39 @@ Bot::Bot(const std::string& token) : telegramBot(token), currentState(std::make_
             return; // Пропускаем старый callback-запрос
         }
         else if (query->data == "catalog") { // список категорий
-            currentState = std::make_shared<CatalogState>(telegramBot, categories, products); 
+            currentState = std::make_shared<CatalogState>(telegramBot, dataBase);
             currentState->handleStart(query->message);
             telegramBot.getApi().answerCallbackQuery(query->id);
         }
         else if (query->data.rfind("category_", 0) == 0) { // список товаров в категории
             telegramBot.getApi().deleteMessage(query->message->chat->id, query->message->messageId);
             std::string category = query->data.substr(9); // Получаем название категории
-            currentState = std::make_shared<CategoryState>(telegramBot, category, products);
+            currentState = std::make_shared<CategoryState>(telegramBot, category, dataBase);
             currentState->handleStart(query->message);    
         }
         else if (query->data.rfind("back_to_category_", 0) == 0) { // кнопка назад из товара
             std::string category = query->data.substr(17);
-            currentState = std::make_shared<CategoryState>(telegramBot, category, products);
+            currentState = std::make_shared<CategoryState>(telegramBot, category, dataBase);
             currentState->handleStart(query->message);
             telegramBot.getApi().answerCallbackQuery(query->id);
         }
         else if (query->data.rfind("add_to_cart_", 0) == 0) { // добавить в корзину
             std::string productName = query->data.substr(12); // Получаем имя продукта
-            auto it = std::find_if(products.begin(), products.end(), [&productName](const Product& product) {
+            auto it = std::find_if(dataBase.getProducts().begin(), dataBase.getProducts().end(), [&productName](const Product& product) {
                 return product.getName() == productName;
                 });
 
-            if (it != products.end()) {
+            if (it != dataBase.getProducts().end()) {
                 if (it->getAvailableQuantity() <= 0) {
                     this->telegramBot.getApi().sendMessage(query->message->chat->id,
                         u8"Извините, товара нет в наличии😥", false, 0, nullptr, "HTML");
                 }
                 else {
                     this->cart.addToCart(*it);
-                    this->telegramBot.getApi().sendMessage(query->message->chat->id, "<b>" + productName + "</b>" + u8" x 1\nДобавлено в корзину", false, 0, nullptr, "HTML");
+                    this->telegramBot.getApi().sendMessage(query->message->chat->id, "<b>" + productName + "</b>" +
+                        u8" x 1\nДобавлено в корзину", false, 0, nullptr, "HTML");
                 }
             }
-            telegramBot.getApi().answerCallbackQuery(query->id);
-        }
-        else if (query->data == "back_to_catalog") { // назад из товаров
-            telegramBot.getApi().deleteMessage(query->message->chat->id, query->message->messageId);
-            currentState = std::make_shared<CatalogState>(telegramBot, categories, products);
-            currentState->handleStart(query->message);
             telegramBot.getApi().answerCallbackQuery(query->id);
         }
         else if (query->data == "cart") { // моя корзина
@@ -116,20 +109,8 @@ Bot::Bot(const std::string& token) : telegramBot(token), currentState(std::make_
             currentState->handleStart(query->message);
             telegramBot.getApi().answerCallbackQuery(query->id);
         }
-        else if (query->data == "confirm_order_yes") {
-            inputState = NONE;
-            telegramBot.getApi().editMessageText(u8"Ваш заказ подтвержден!\nВас уведомят о статусе заказа.", query->message->chat->id, query->message->messageId);
-            currentState = std::make_shared<StartState>(telegramBot);
-            telegramBot.getApi().answerCallbackQuery(query->id);
-        }
-        else if (query->data == "confirm_order_no") {
-            inputState = NONE;
-            telegramBot.getApi().editMessageText(u8"Заказ отменен.", query->message->chat->id, query->message->messageId);
-            currentState = std::make_shared<StartState>(telegramBot);
-            telegramBot.getApi().answerCallbackQuery(query->id);
-        }
         else {
-            currentState->handleMenuQ(query); // Обработка запросов в соответствующих меню
+            currentState->handleMenuQ(query, currentState, dataBase); // Обработка запросов в соответствующих меню
         }
     });
 
@@ -138,13 +119,11 @@ Bot::Bot(const std::string& token) : telegramBot(token), currentState(std::make_
     });
 }
 
-void Bot::run(std::string connectionString) {
+void Bot::run() {
     try {
         TgBot::TgLongPoll longPoll(telegramBot);
         std::cout << "Bot started: Telegram connettion ready\n";
         
-        this->products = fetchProductsFromDb(connectionString);
-
         while (true) {
             longPoll.start();
         }

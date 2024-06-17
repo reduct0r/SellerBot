@@ -27,18 +27,18 @@ void StartState::handleStart(TgBot::Message::Ptr message) {
     keyboard->inlineKeyboard.push_back(row1);
     keyboard->inlineKeyboard.push_back(row2);
 
-    bot.getApi().sendMessage(chatId, u8"Привет! Выберите одну из опций ниже:", false, 0, keyboard);
+    auto sentMessage = bot.getApi().sendMessage(chatId, u8"Привет! Выберите одну из опций ниже:", false, 0, keyboard);
 
-    if (!bot.getApi().getChat(chatId)->pinnedMessage)
-    {
-        bot.getApi().pinChatMessage(chatId, message->messageId+1);
+    // Проверка на отсутствие закрепленного сообщения перед закреплением свежего.
+    if (!bot.getApi().getChat(chatId)->pinnedMessage) {
+        bot.getApi().pinChatMessage(chatId, sentMessage->messageId);
     }
 }
 
 void StartState::handleMenu(TgBot::Message::Ptr message) {
 }
 
-void StartState::handleMenuQ(TgBot::CallbackQuery::Ptr query)
+void StartState::handleMenuQ(TgBot::CallbackQuery::Ptr query, std::shared_ptr<TelegramState>& currentState, DataBase& dataBase)
 {
     if (query->data == "support") { // поддержка
         this->bot.getApi().sendMessage(query->message->chat->id, u8"Техническая поддержка: @support");

@@ -5,11 +5,10 @@
 
 class CatalogState : public TelegramState {
 public:
-    //explicit CatalogState(TgBot::Bot& bot, const std::vector<Product>& products);
-    explicit CatalogState(TgBot::Bot& bot, const std::vector<std::string>& categories, const std::vector<Product>& products);
+    explicit CatalogState(TgBot::Bot& bot, DataBase& dataBase);
     void handleStart(TgBot::Message::Ptr message) override;
+    void handleMenuQ(TgBot::CallbackQuery::Ptr query, std::shared_ptr<TelegramState>& currentState, DataBase& dataBase) override;
     void handleMenu(TgBot::Message::Ptr message) override;
-    void handleMenuQ(TgBot::CallbackQuery::Ptr query) override;
 private:
     TgBot::Bot& bot;
     std::vector<Product> products;

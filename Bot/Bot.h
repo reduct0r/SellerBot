@@ -1,7 +1,10 @@
 #pragma once
+#include <iostream>
+#include <map>
 #include <tgbot/tgbot.h>
 #include "../State/State.h"
 #include "../Product/Product.h"
+#include "../DataBase/DataBase.h"
 
 enum InputState {
     NONE,
@@ -33,14 +36,14 @@ public:
 
 class Bot {
 public:
-    Bot(const std::string& token);
-    void run(std::string connectionString);
+    Bot(const std::string& token, std::string connectionString);
+    void run();
     void showCart(TgBot::Message::Ptr message);
 
 private:
+    DataBase dataBase;
     TgBot::Bot telegramBot;
     std::shared_ptr<TelegramState> currentState;
     Cart cart;  // корзина
     InputState inputState;
-    std::vector<Product> products;
 };

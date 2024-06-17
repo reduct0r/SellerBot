@@ -8,7 +8,9 @@ std::string connectionString = "host=localhost port=5432 dbname=seller_bot user=
 int main() {
     setlocale(LC_ALL, "Russian");
 
-    Bot bot(token);
-    bot.run(connectionString);
+    Bot bot(token, connectionString);
+    bot.run();
     return 0;
 }
+
+// -1 от колва твоара при заказе

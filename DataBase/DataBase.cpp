@@ -1,7 +1,14 @@
 #include "DataBase.h"
 
-std::vector<Product> fetchProductsFromDb(const std::string& connectionString) {
+DataBase::DataBase(const std::string& connectionString) : connectionString(connectionString) {
+    this->categories = { "Printers", "Scanners" };
+    this->products = fetchProductsFromDb();
+}
+
+
+std::vector<Product> DataBase::fetchProductsFromDb() {
     std::vector<Product> products;
+    pqxx::connection conn(connectionString);
 
     try {
         pqxx::connection conn(connectionString);
@@ -30,6 +37,7 @@ std::vector<Product> fetchProductsFromDb(const std::string& connectionString) {
                     std::cerr << "Error parsing JSON from specs column: " << parseErrors << std::endl;
                     continue;
                 }
+
 
                 std::string characteristics = "";
 
@@ -62,4 +70,12 @@ std::vector<Product> fetchProductsFromDb(const std::string& connectionString) {
     }
 
     return products;
+}
+
+const std::vector<Product>& DataBase::getProducts() const {
+    return products;
+}
+
+const std::vector<std::string>& DataBase::getCategories() const {
+    return categories;
 }

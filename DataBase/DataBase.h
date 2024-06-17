@@ -1,7 +1,20 @@
+#pragma once
 #include <pqxx/pqxx>
 #include <json/json.h>
 #include <vector>
 #include <iostream>
 #include "../Product/Product.h"
 
-std::vector<Product> fetchProductsFromDb(const std::string& connectionString);
+class DataBase {
+public:
+    explicit DataBase(const std::string& connectionString);
+    std::vector<Product> fetchProductsFromDb();
+    const std::vector<Product>& getProducts() const;
+    const std::vector<std::string>& getCategories() const;
+
+private:
+    std::vector<Product> products;          // каталог всех товаров
+    std::vector<std::string> categories;    // список категорий
+
+    std::string connectionString;
+};

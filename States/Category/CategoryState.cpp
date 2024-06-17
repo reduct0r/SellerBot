@@ -1,8 +1,10 @@
 ﻿#include "CategoryState.h"
 #include "../MainMenu/MainMenuState.h"
+#include "../Catalog/CatalogState.h"
+#include "../../Bot/Bot.h"
 
-CategoryState::CategoryState(TgBot::Bot& bot, const std::string& category, const std::vector<Product>& products)
-    : bot(bot), category(category), products(products) { }
+CategoryState::CategoryState(TgBot::Bot& bot, const std::string& category, DataBase& dataBase)
+    : bot(bot), category(category), products(dataBase.getProducts()) { }
 
 void CategoryState::handleStart(TgBot::Message::Ptr message) {
     auto chatId = message->chat->id;
@@ -38,7 +40,7 @@ void CategoryState::handleStart(TgBot::Message::Ptr message) {
     bot.getApi().sendMessage(chatId, u8"Продукты в категории<b> " + category + "</b>", false, 0, keyboard, "HTML");
 }
 
-void CategoryState::handleMenuQ(TgBot::CallbackQuery::Ptr query)
+void CategoryState::handleMenuQ(TgBot::CallbackQuery::Ptr query, std::shared_ptr<TelegramState>& currentState, DataBase& dataBase)
 {
     if (query->data.rfind(u8"product_", 0) == 0) {
         std::string productName = query->data.substr(8); // Получаем имя продукта
@@ -109,6 +111,12 @@ void CategoryState::handleMenuQ(TgBot::CallbackQuery::Ptr query)
         sortProducts(false);
         bot.getApi().deleteMessage(query->message->chat->id, query->message->messageId);
         handleStart(query->message);
+    }
+    else if (query->data == "back_to_catalog") { // назад из товаров
+        bot.getApi().deleteMessage(query->message->chat->id, query->message->messageId);
+        bot.getApi().answerCallbackQuery(query->id);
+        currentState = std::make_shared<CatalogState>(bot, dataBase);
+        currentState->handleStart(query->message);
     }
 
 }

@@ -7,12 +7,12 @@
 class CategoryState : public TelegramState {
 public:
 
-    CategoryState(TgBot::Bot& bot, const std::string& category, const std::vector<Product>& products);
+    CategoryState(TgBot::Bot& bot, const std::string& category, DataBase& dataBase);
 
     void handleStart(TgBot::Message::Ptr message) override;
+    void handleMenuQ(TgBot::CallbackQuery::Ptr query, std::shared_ptr<TelegramState>& currentState, DataBase& dataBase) override;
     void handleMenu(TgBot::Message::Ptr message) override;
     void sortProducts(bool ascending);
-    void handleMenuQ(TgBot::CallbackQuery::Ptr query) override;
 
 private:
     TgBot::Bot& bot;

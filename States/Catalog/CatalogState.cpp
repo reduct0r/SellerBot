@@ -2,8 +2,8 @@
 #include "../MainMenu/MainMenuState.h"
 #include "../Category/CategoryState.h"
 
-CatalogState::CatalogState(TgBot::Bot& bot, const std::vector<std::string>& categories, const std::vector<Product>& products)
-    : bot(bot), categories(categories), products(products) { }
+CatalogState::CatalogState(TgBot::Bot& bot, DataBase& dataBase)
+    : bot(bot), categories(dataBase.getCategories()), products(dataBase.getProducts()) { }
 
 void CatalogState::handleStart(TgBot::Message::Ptr message) {
     auto chatId = message->chat->id;
@@ -21,7 +21,7 @@ void CatalogState::handleStart(TgBot::Message::Ptr message) {
     bot.getApi().sendMessage(chatId, u8"Категории продуктов:", false, 0, keyboard);
 }
 
-void CatalogState::handleMenuQ(TgBot::CallbackQuery::Ptr query) {
+void CatalogState::handleMenuQ(TgBot::CallbackQuery::Ptr query, std::shared_ptr<TelegramState>& currentState, DataBase& dataBase) {
 
 }
 
