@@ -12,6 +12,8 @@ public:
     const std::vector<Product>& getProducts() const;
     const std::vector<std::string>& getCategories() const;
 
+    void confirmOrder(const std::string& productName);
+
 private:
     std::vector<Product> products;          // каталог всех товаров
     std::vector<std::string> categories;    // список категорий

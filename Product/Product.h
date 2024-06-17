@@ -15,6 +15,8 @@ public:
     const std::string& getDeliveryInfo() const;
     const std::string& getImageUrl() const;
 
+    void decrementQuantity();
+
 private:
     std::string name;
     std::string category;

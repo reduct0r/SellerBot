@@ -7,7 +7,7 @@ std::string connectionString = "host=localhost port=5432 dbname=seller_bot user=
 
 int main() {
     setlocale(LC_ALL, "Russian");
-    SetConsoleWidth(130);  // Установить ширину консоли в 120 символов
+    SetConsoleWidth(130);           // Установить ширину консоли в 120 символов
     std::cout << R"(
       ___           ___           ___       ___       ___           ___                    ___           ___                   
      /  /\         /  /\         /  /\     /  /\     /  /\         /  /\                  /  /\         /  /\          ___     
@@ -24,8 +24,6 @@ int main() {
 
 
     Bot bot(token, connectionString);
-    bot.run();
+    bot.run();                          // Запуск бота
     return 0;
 }
-
-// -1 от колва твоара при заказе

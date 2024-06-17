@@ -150,10 +150,55 @@ std::vector<Product> DataBase::fetchProductsFromDb() {
     return products;
 }
 
+void DataBase::confirmOrder(const std::string& productName) {
+    for (auto& product : products) {
+        if (product.getName() == productName) {
+            if (product.getAvailableQuantity() > 0) {
+                product.decrementQuantity();  // Метод класса Product для уменьшения количества на 1
+
+                // Открытие соединения с базой данных
+                try {
+                    pqxx::connection C(connectionString);
+                    if (C.is_open()) {
+                        std::cout << "Opened database successfully: " << C.dbname() << std::endl;
+                    }
+                    else {
+                        std::cout << "Can't open database" << std::endl;
+                        return;
+                    }
+
+                    // Создание транзакции
+                    pqxx::work W(C);
+
+                    // Запрос на обновление количества
+                    std::string query = "UPDATE products SET amount = " + std::to_string(product.getAvailableQuantity()) +
+                        " WHERE name = '" + product.getName() + "';";
+                    W.exec(query);
+                    W.commit();
+                    std::cout << "Quantity updated successfully" << std::endl;
+                }
+                catch (const std::exception& e) {
+                    std::cerr << e.what() << std::endl;
+                }
+            }
+            else {
+                std::cerr << "Not enough quantity available" << std::endl;
+            }
+            break;
+        }
+    }
+}
+
 const std::vector<Product>& DataBase::getProducts() const {
     return products;
 }
 
 const std::vector<std::string>& DataBase::getCategories() const {
     return categories;
+}
+
+inline void Product::decrementQuantity() {
+    if (availableQuantity > 0) {
+        --availableQuantity;
+    }
 }

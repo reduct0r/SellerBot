@@ -36,3 +36,9 @@ const std::string& Product::getDeliveryInfo() const {
 const std::string& Product::getImageUrl() const {
     return imageUrl;
 }
+
+inline void Product::decrementQuantity() {
+    if (availableQuantity > 0) {
+        --availableQuantity;
+    }
+}

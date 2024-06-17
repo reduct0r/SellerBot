@@ -45,10 +45,14 @@ void CheckoutState::handleMenuQ(TgBot::CallbackQuery::Ptr query, std::shared_ptr
         inputState = NONE;
         bot.getApi().editMessageText(u8"Ваш заказ подтвержден!\nВас уведомят о статусе заказа.", query->message->chat->id, query->message->messageId);
         bot.getApi().answerCallbackQuery(query->id);
+
+        // Подтверждение заказа и обновление базы данных
+        for (const auto& item : cart.listOfProducts) {
+            dataBase.confirmOrder(item.getName());
+        }
+
         currentState = std::make_shared<StartState>(bot);
     }
-
-
 }
 
 void CheckoutState::handleMenu(TgBot::Message::Ptr message)
