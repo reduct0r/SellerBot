@@ -15,6 +15,10 @@ public:
 private:
     std::vector<Product> products;          // каталог всех товаров
     std::vector<std::string> categories;    // список категорий
-
     std::string connectionString;
+
+    void askModeAndInitialize();
+    void adminMode();
+    void userMode();
+    void explainModes();
 };

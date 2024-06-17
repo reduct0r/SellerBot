@@ -46,4 +46,13 @@ private:
     std::shared_ptr<TelegramState> currentState;
     Cart cart;  // корзина
     InputState inputState;
+
+    // Методы для инициализации компонентов и обработки событий.
+    int getMessageAgeInSeconds(TgBot::Message::Ptr message);  // Метод для получения возраста сообщения в секундах
+    void initializeCommands();  // Инициализация команд
+    void setBotCommands();  // Установить команды ботa
+    void handleCallbackQuery(TgBot::CallbackQuery::Ptr query);  // Обработка callback-запросов
+    void initializeEventHandlers();  // Инициализация обработчиков событий
 };
+
+void SetConsoleWidth(int width);
