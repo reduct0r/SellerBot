@@ -86,10 +86,22 @@ void CheckoutState::handleMenuQ(TgBot::CallbackQuery::Ptr query, std::shared_ptr
             dataBase.confirmOrder(item.getName());
         }
 
-
         inputState = NONE;
+        this->cart.clearCart();
         bot.getApi().answerCallbackQuery(query->id);
         currentState = std::make_shared<StartState>(bot);
+    }
+}
+
+// Функция для обработки обновлений с проверкой успешного платежа
+void CheckoutState::handleUpdate(TgBot::Update::Ptr update) {
+    if (update->preCheckoutQuery) {
+        bot.getApi().answerPreCheckoutQuery(update->preCheckoutQuery->id, true, u8"Подтверждаю!");
+    }
+    else if (update->message && update->message->successfulPayment) {
+        std::cout << u8"Payment successful! Payload: " << update->message->successfulPayment->invoicePayload << std::endl;
+        // Здесь можно добавить дальнейшее действие после успешного платежа, например, сообщение пользователю
+        bot.getApi().sendMessage(update->message->chat->id, u8"Ваш платеж успешно завершен! Спасибо за покупку.");
     }
 }
 

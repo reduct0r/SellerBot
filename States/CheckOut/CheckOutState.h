@@ -7,6 +7,7 @@ public:
 
     void handleStart(TgBot::Message::Ptr message) override;
     void handleMenuQ(TgBot::CallbackQuery::Ptr query, std::shared_ptr<TelegramState>& currentState, DataBase& dataBase) override;
+    void handleUpdate(TgBot::Update::Ptr update);
     void handleMenu(TgBot::Message::Ptr message) override;
     void confirmOrder(TgBot::Message::Ptr message);
     void handleBuy(TgBot::CallbackQuery::Ptr query);

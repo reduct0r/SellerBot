@@ -33,7 +33,7 @@ public:
 
     Cart();
     Cart(std::vector<Product> listOfProducts, double sumOfCart);
-    void clearCart(TgBot::Message::Ptr message); // Очистить корзину
+    void clearCart(); // Очистить корзину
     void addToCart(const Product& product);      // Добавить в корзину
 };
 

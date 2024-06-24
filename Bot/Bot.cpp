@@ -109,7 +109,7 @@ void Bot::handleCallbackQuery(TgBot::CallbackQuery::Ptr query) {
     else if (query->data == "clear_cart") {
         telegramBot.getApi().answerCallbackQuery(query->id);
         this->telegramBot.getApi().editMessageText(u8"Корзина очищена", query->message->chat->id, query->message->messageId);
-        cart.clearCart(query->message);
+        cart.clearCart();
     }
     else if (query->data == "checkout") {
         currentState = std::make_shared<CheckoutState>(telegramBot, cart, inputState, providerToken);
@@ -163,7 +163,7 @@ void Cart::addToCart(const Product& product) {
     this->listOfProducts.push_back(product);
 }
 
-void Cart::clearCart(TgBot::Message::Ptr message){
+void Cart::clearCart(){
     this->listOfProducts.clear();
     this->sumOfCart = 0;
 }
