@@ -91,7 +91,7 @@ std::vector<Product> DataBase::fetchProductsFromDb() {
     try {
         pqxx::connection conn(connectionString);
         if (conn.is_open()) {
-            std::cout << "DataBase started: DataBase connection ready\n";
+            std::cout << "DataBase started: DataBase connection ready " << conn.dbname() << std::endl;
             pqxx::work txn(conn);
 
             std::string query = "SELECT name, category, price, amount, description, specs, delivery, link FROM products";
@@ -159,10 +159,7 @@ void DataBase::confirmOrder(const std::string& productName) {
                 // Открытие соединения с базой данных
                 try {
                     pqxx::connection C(connectionString);
-                    if (C.is_open()) {
-                        std::cout << "Opened database successfully: " << C.dbname() << std::endl;
-                    }
-                    else {
+                    if (!C.is_open()) {
                         std::cout << "Can't open database" << std::endl;
                         return;
                     }
@@ -175,14 +172,14 @@ void DataBase::confirmOrder(const std::string& productName) {
                         " WHERE name = '" + product.getName() + "';";
                     W.exec(query);
                     W.commit();
-                    std::cout << "Quantity updated successfully" << std::endl;
+                    std::cout << "Quantity updated successfully: " << productName << std::endl;
                 }
                 catch (const std::exception& e) {
                     std::cerr << e.what() << std::endl;
                 }
             }
             else {
-                std::cerr << "Not enough quantity available" << std::endl;
+                std::cerr << "Not enough quantity available: " << productName << std::endl;
             }
             break;
         }

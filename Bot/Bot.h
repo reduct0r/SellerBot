@@ -39,11 +39,13 @@ public:
 
 class Bot {
 public:
-    Bot(const std::string& token, std::string connectionString);
+    Bot(const std::string& token, std::string connectionString, const std::string& providerToken);
     void run();
     void showCart(TgBot::Message::Ptr message);  // Показать корзину
 
 private:
+    const std::string providerToken;
+
     DataBase dataBase;
     TgBot::Bot telegramBot;
     std::shared_ptr<TelegramState> currentState;

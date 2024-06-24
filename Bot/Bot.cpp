@@ -4,8 +4,9 @@
 #include "../States/Category/CategoryState.h"
 #include "../States/CheckOut/CheckOutState.h"
 
-Bot::Bot(const std::string& token, std::string connectionString)
-    : dataBase(connectionString), telegramBot(token), currentState(std::make_shared<StartState>(telegramBot)) {
+Bot::Bot(const std::string& token, std::string connectionString, const std::string& providerToken)
+    : dataBase(connectionString), telegramBot(token), currentState(std::make_shared<StartState>(telegramBot)),
+    providerToken(providerToken){
 
     this->inputState = NONE;    // Состояние ввода пользователя
 
@@ -111,7 +112,7 @@ void Bot::handleCallbackQuery(TgBot::CallbackQuery::Ptr query) {
         cart.clearCart(query->message);
     }
     else if (query->data == "checkout") {
-        currentState = std::make_shared<CheckoutState>(telegramBot, cart, inputState);
+        currentState = std::make_shared<CheckoutState>(telegramBot, cart, inputState, providerToken);
         currentState->handleStart(query->message);
         telegramBot.getApi().answerCallbackQuery(query->id);
     }

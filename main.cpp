@@ -2,7 +2,8 @@
 #include "State/State.h"
 #include "States/MainMenu/MainMenuState.h"
 
-const std::string token = "7262333796:AAFwzFBdKZ7btr60P0TXt29uMWR4I4gA3Kk";
+const std::string token = "7352338666:AAFb-3pidYMDq5bZ4TeRqDFaZFJYLHxzalo";
+const std::string providerToken = "401643678:TEST:d3fd1b40-5343-4ded-86df-d2b2f20eae93";
 std::string connectionString = "host=localhost port=5432 dbname=seller_bot user=postgres password=admin connect_timeout=10";
 
 int main() {
@@ -23,7 +24,7 @@ int main() {
     )" << std::endl;
 
 
-    Bot bot(token, connectionString);
+    Bot bot(token, connectionString, providerToken);
     bot.run();                          // Запуск бота
     return 0;
 }
