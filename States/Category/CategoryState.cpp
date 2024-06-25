@@ -93,24 +93,27 @@ void CategoryState::handleMenuQ(TgBot::CallbackQuery::Ptr query, std::shared_ptr
     }
     else if (query->data == "sort") {
         TgBot::InlineKeyboardMarkup::Ptr filterKeyboard(new TgBot::InlineKeyboardMarkup);
-        std::vector<TgBot::InlineKeyboardButton::Ptr> filterButtons;
 
-        TgBot::InlineKeyboardButton::Ptr ascButton(new TgBot::InlineKeyboardButton);
-        ascButton->text = u8"🔺 По возрастанию цены";
-        ascButton->callbackData = "sort_price_asc";
-
-        TgBot::InlineKeyboardButton::Ptr descButton(new TgBot::InlineKeyboardButton);
-        descButton->text = u8"🔻 По убыванию цены";
-        descButton->callbackData = "sort_price_desc";
-
+        std::vector<TgBot::InlineKeyboardButton::Ptr> searchButtonRow;
         TgBot::InlineKeyboardButton::Ptr searchButton(new TgBot::InlineKeyboardButton);
         searchButton->text = u8"🔎 Поиск";
         searchButton->callbackData = "search_items";
+        searchButtonRow.push_back(searchButton);
+        filterKeyboard->inlineKeyboard.push_back(searchButtonRow);
 
-        filterButtons.push_back(ascButton);
-        filterButtons.push_back(descButton);
-        filterButtons.push_back(searchButton);
-        filterKeyboard->inlineKeyboard.push_back(filterButtons);
+        std::vector<TgBot::InlineKeyboardButton::Ptr> ascButtonRow;
+        TgBot::InlineKeyboardButton::Ptr ascButton(new TgBot::InlineKeyboardButton);
+        ascButton->text = u8"🔺 По возрастанию цены";
+        ascButton->callbackData = "sort_price_asc";
+        ascButtonRow.push_back(ascButton);
+        filterKeyboard->inlineKeyboard.push_back(ascButtonRow);
+
+        std::vector<TgBot::InlineKeyboardButton::Ptr> descButtonRow;
+        TgBot::InlineKeyboardButton::Ptr descButton(new TgBot::InlineKeyboardButton);
+        descButton->text = u8"🔻 По убыванию цены";
+        descButton->callbackData = "sort_price_desc";
+        descButtonRow.push_back(descButton);
+        filterKeyboard->inlineKeyboard.push_back(descButtonRow);
 
         bot.getApi().sendMessage(query->message->chat->id, u8"Выберите метод сортировки или поиска:", false, 0, filterKeyboard);
         bot.getApi().answerCallbackQuery(query->id);
