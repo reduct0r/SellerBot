@@ -25,24 +25,58 @@ void CheckoutState::handleStart(TgBot::Message::Ptr message){
 void CheckoutState::handleBuy(TgBot::CallbackQuery::Ptr query) {
     try {
         TgBot::LabeledPrice::Ptr price(new TgBot::LabeledPrice());
-        price->label = u8"5 Telegram Stars";
-        price->amount = 10000; // цена в копейках
+        price->label = u8"Заказ";
+        price->amount = this->cart.sumOfCart * 100; // цена в копейках
 
         std::vector<TgBot::LabeledPrice::Ptr> prices;
         prices.push_back(price);
 
-        bot.getApi().sendInvoice(
-            query->message->chat->id,
-            u8"Покупка Telegram Stars",
-            u8"Вы собираетесь купить 5 Telegram Stars",
-            u8"unique_payload_for_this_transaction",
-            providerToken,
-            u8"RUB",
-            prices,
-            u8"",  // Фото URL (оставляем пустым, если фото нет)
-            u8"",  // Фото размера (оставляем пустым, если фото нет)
-            60   // Время ожидания в секундах перед завершением платежа
-        );
+        std::map<std::string, std::pair<int, double>> productMap; // <название товара, <количество, общая стоимость>>
+
+        for (const auto& product : this->cart.listOfProducts) {
+            auto& productEntry = productMap[product.getName()];
+            productEntry.first += 1;                    // Увеличиваем количество
+            productEntry.second += product.getPrice();  // Прибавляем к общей сумме
+            this->cart.sumOfCart += product.getPrice();
+        }
+        // Формируем детали корзины на основе подсчитанной информации
+        std::string cartDetails;
+        cartDetails = u8"Ваша корзина: \n";
+        for (const auto& entry : productMap) {
+            std::string str = std::to_string(entry.second.second);
+            cartDetails += entry.first + " x" + std::to_string(entry.second.first) + " - " +
+                str.erase(str.find_last_not_of('0') + 2, std::string::npos) + u8" руб\n";
+        }
+        cartDetails += u8"\nИтого: " + this->cart.sumOfCartS + u8" руб";
+
+        if (!this->geoPoint) {
+            bot.getApi().sendInvoice(
+                query->message->chat->id,
+                u8"Оплата заказа на сумму " + this->cart.sumOfCartS + u8" руб.",
+                cartDetails,
+                u8"unique_payload_for_this_transaction",
+                providerToken,
+                u8"RUB",
+                prices,
+                u8"",
+                this->cart.listOfProducts[0].getImageUrl(),
+                100, 100, 100, 1, 1, 1, 1
+            );
+        }
+        else {
+            bot.getApi().sendInvoice(
+                query->message->chat->id,
+                u8"Оплата заказа на сумму " + this->cart.sumOfCartS + u8" руб.",
+                cartDetails,
+                u8"unique_payload_for_this_transaction",
+                providerToken,
+                u8"RUB",
+                prices,
+                u8"",
+                this->cart.listOfProducts[0].getImageUrl(),
+                100, 100, 100, 1, 1, 1
+            );
+        }
     }
     catch (const TgBot::TgException& e) {
         std::cerr << u8"Error in handleBuyStars: " << e.what() << std::endl;
@@ -51,8 +85,9 @@ void CheckoutState::handleBuy(TgBot::CallbackQuery::Ptr query) {
 
 void CheckoutState::handleMenuQ(TgBot::CallbackQuery::Ptr query, std::shared_ptr<TelegramState>& currentState, DataBase& dataBase) {
     if (query->data == "manual_input") {
-        bot.getApi().sendMessage(query->message->chat->id, u8"Введите основной адрес (страна, город, улица):");
-        inputState = MANUAL_INPUT_MAIN_ADDRESS;
+        bot.getApi().sendMessage(query->message->chat->id, u8"Введите комментарий для службы доставки. \n Уточните важные моменты, не оставляйте личные данные");
+        inputState = MANUAL_INPUT_COMMENT;
+        this->geoPoint = 0;
         bot.getApi().answerCallbackQuery(query->id);
     }
     else if (query->data == "geolocation_input") {
@@ -63,20 +98,12 @@ void CheckoutState::handleMenuQ(TgBot::CallbackQuery::Ptr query, std::shared_ptr
     }
     else if (query->data == "confirm_order_no") {
         inputState = NONE;
+        handleBuy(query);
         bot.getApi().editMessageText(u8"Заказ отменен.", query->message->chat->id, query->message->messageId);
         bot.getApi().answerCallbackQuery(query->id);
         currentState = std::make_shared<StartState>(bot);
     }
     else if (query->data == "confirm_order_yes") {
-        TgBot::InlineKeyboardMarkup::Ptr keyboard(new TgBot::InlineKeyboardMarkup);
-        std::vector<TgBot::InlineKeyboardButton::Ptr> row;
-
-        TgBot::InlineKeyboardButton::Ptr button(new TgBot::InlineKeyboardButton);
-        button->text = u8"Купить 5 звезд за 100 рублей";
-        button->callbackData = u8"buy_stars";
-        row.push_back(button);
-        keyboard->inlineKeyboard.push_back(row);
-
         bot.getApi().editMessageText(u8"Ваш заказ подтвержден!\nВыполните оплату", query->message->chat->id, query->message->messageId);
 
         // Вызов метода для обработки покупки звёзд
@@ -115,7 +142,7 @@ void CheckoutState::handleMenu(TgBot::Message::Ptr message)
         break;
     case MANUAL_INPUT_SUB_ADDRESS:
         shipInfo.subAddress = message->text;
-        bot.getApi().sendMessage(message->chat->id, u8"Введите комментарий для службы доставки:");
+        bot.getApi().sendMessage(message->chat->id, u8"Введите комментарий для службы доставки. \nУточните важные моменты, не оставляйте личные данные");
         inputState = MANUAL_INPUT_COMMENT;
         break;
     case MANUAL_INPUT_COMMENT:
@@ -125,7 +152,8 @@ void CheckoutState::handleMenu(TgBot::Message::Ptr message)
         break;
     case GEOLOCATION_INPUT:
         if (message->location) {
-            bot.getApi().sendMessage(message->chat->id, u8"Геометка получена. Введите суб-адрес (дом, квартира, этаж):");
+            bot.getApi().sendMessage(message->chat->id, u8"Введите суб-адрес (дом, квартира, этаж):");
+            //inputState = MANUAL_INPUT_SUB_ADDRESS;
             inputState = MANUAL_INPUT_SUB_ADDRESS;
         }
         break;
@@ -135,14 +163,14 @@ void CheckoutState::handleMenu(TgBot::Message::Ptr message)
 }
 
 void CheckoutState::confirmOrder(TgBot::Message::Ptr message) {
-    std::string address;
+    std::string confirmationMessage;
     if (this->geoPoint) {
-        address = u8"(Геометка), " + shipInfo.subAddress;
+        confirmationMessage = u8"(Геометка) " + this->shipInfo.subAddress;
     }
     else {
-        address = shipInfo.mainAddress + ", " + shipInfo.subAddress;
+        confirmationMessage = "";
     }
-    std::string confirmationMessage = u8"Ваш адрес: " + address + u8"\nКомментарий: " + shipInfo.shippingComment + u8"\nПодтвердить заказ?";
+    confirmationMessage += u8"\nВаш комментарий: " + shipInfo.shippingComment + u8"\nПродолжить оформление заказа?";
 
     TgBot::InlineKeyboardMarkup::Ptr keyboard = std::make_shared<TgBot::InlineKeyboardMarkup>();
     std::vector<TgBot::InlineKeyboardButton::Ptr> row;
