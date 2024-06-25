@@ -188,4 +188,3 @@ void CheckoutState::confirmOrder(TgBot::Message::Ptr message) {
     keyboard->inlineKeyboard.push_back(row);
     bot.getApi().sendMessage(message->chat->id, confirmationMessage, false, 0, keyboard);
 }
-

@@ -2,6 +2,7 @@
 #include "../MainMenu/MainMenuState.h"
 #include "../Catalog/CatalogState.h"
 #include "../../Bot/Bot.h"
+#include <regex>
 
 CategoryState::CategoryState(TgBot::Bot& bot, const std::string& category, DataBase& dataBase)
     : bot(bot), category(category), products(dataBase.getProducts()) { }
@@ -17,7 +18,7 @@ void CategoryState::handleStart(TgBot::Message::Ptr message) {
 
     button1->text = u8"Назад в каталог";
     button1->callbackData = "back_to_catalog";
-    button2->text = u8"🔍 Фильтры";
+    button2->text = u8"🔍 Поиск и Фильтры";
     button2->callbackData = "sort";
 
     row1.push_back(button1);
@@ -42,7 +43,16 @@ void CategoryState::handleStart(TgBot::Message::Ptr message) {
 
 void CategoryState::handleMenuQ(TgBot::CallbackQuery::Ptr query, std::shared_ptr<TelegramState>& currentState, DataBase& dataBase)
 {
-    if (query->data.rfind(u8"product_", 0) == 0) {
+    if (query->data == "search_items") {
+        bot.getApi().sendMessage(query->message->chat->id, u8"Введите ключевое слово для поиска товаров:");
+        bot.getApi().answerCallbackQuery(query->id);
+        waitingForKeyword = true;
+    }
+    else if (query->data == "cancel_search") {
+        handleStart(query->message);
+        bot.getApi().answerCallbackQuery(query->id);
+    }
+    else if (query->data.rfind(u8"product_", 0) == 0) {
         std::string productName = query->data.substr(8); // Получаем имя продукта
         auto it = std::find_if(products.begin(), products.end(), [&productName](const Product& product) {
             return product.getName() == productName;
@@ -93,11 +103,20 @@ void CategoryState::handleMenuQ(TgBot::CallbackQuery::Ptr query, std::shared_ptr
         descButton->text = u8"🔻 По убыванию цены";
         descButton->callbackData = "sort_price_desc";
 
+        TgBot::InlineKeyboardButton::Ptr searchButton(new TgBot::InlineKeyboardButton);
+        searchButton->text = u8"🔎 Поиск";
+        searchButton->callbackData = "search_items";
+
         filterButtons.push_back(ascButton);
         filterButtons.push_back(descButton);
+        filterButtons.push_back(searchButton);
         filterKeyboard->inlineKeyboard.push_back(filterButtons);
 
-        bot.getApi().sendMessage(query->message->chat->id, u8"Выберите метод сортировки:", false, 0, filterKeyboard);
+        bot.getApi().sendMessage(query->message->chat->id, u8"Выберите метод сортировки или поиска:", false, 0, filterKeyboard);
+        bot.getApi().answerCallbackQuery(query->id);
+    }
+    else if (query->data == "search_items") {
+        bot.getApi().sendMessage(query->message->chat->id, u8"Введите ключевое слово для поиска товаров:");
         bot.getApi().answerCallbackQuery(query->id);
     }
     else if (query->data == "sort_price_asc") {
@@ -112,16 +131,16 @@ void CategoryState::handleMenuQ(TgBot::CallbackQuery::Ptr query, std::shared_ptr
         bot.getApi().deleteMessage(query->message->chat->id, query->message->messageId);
         handleStart(query->message);
     }
+    else if (query->data == "cancel_search") {
+        handleStart(query->message);
+        bot.getApi().answerCallbackQuery(query->id);
+    }
     else if (query->data == "back_to_catalog") { // назад из товаров
         bot.getApi().deleteMessage(query->message->chat->id, query->message->messageId);
         bot.getApi().answerCallbackQuery(query->id);
         currentState = std::make_shared<CatalogState>(bot, dataBase);
         currentState->handleStart(query->message);
     }
-
-}
-
-void CategoryState::handleMenu(TgBot::Message::Ptr message) {
 
 }
 
@@ -136,4 +155,75 @@ void CategoryState::sortProducts(bool ascending) {
             return a.getPrice() > b.getPrice();
             });
     }
+}
+
+void CategoryState::handleMenu(TgBot::Message::Ptr message) {
+    if (waitingForKeyword) {
+        handleSearch(message); 
+    }
+}
+
+std::string normalizeString(const std::string& str) {
+    // Приведение к нижнему регистру
+    std::string normalizedStr = str;
+    std::transform(normalizedStr.begin(), normalizedStr.end(), normalizedStr.begin(), ::tolower);
+
+    // Удаление лишних пробелов
+    std::regex multipleSpaces("\\s+");
+    normalizedStr = std::regex_replace(normalizedStr, multipleSpaces, " ");
+
+    return normalizedStr;
+}
+
+void CategoryState::handleSearch(TgBot::Message::Ptr message) {
+    std::string keyword = normalizeString(message->text);
+    std::vector<Product> filteredProducts;
+
+    // Фильтрация продуктов по ключевому слову
+    for (const auto& product : products) {
+        std::string productName = normalizeString(product.getName());
+        std::string productDescription = normalizeString(product.getDescription());
+
+        if (productName.find(keyword) != std::string::npos || productDescription.find(keyword) != std::string::npos) {
+            filteredProducts.push_back(product);
+        }
+    }
+
+    TgBot::InlineKeyboardMarkup::Ptr keyboard(new TgBot::InlineKeyboardMarkup);
+
+    if (filteredProducts.empty()) {
+        bot.getApi().sendMessage(message->chat->id, u8"Ничего не найдено.");
+    }
+    else {
+        // Создание первой строки кнопок "назад" и "отменить фильтр"
+        std::vector<TgBot::InlineKeyboardButton::Ptr> firstRow;
+
+        TgBot::InlineKeyboardButton::Ptr backButton(new TgBot::InlineKeyboardButton);
+        backButton->text = u8"Назад";
+        backButton->callbackData = "back_to_catalog";
+        firstRow.push_back(backButton);
+
+        TgBot::InlineKeyboardButton::Ptr cancelButton(new TgBot::InlineKeyboardButton);
+        cancelButton->text = u8"Отменить фильтр";
+        cancelButton->callbackData = "cancel_search";
+        firstRow.push_back(cancelButton);
+
+        keyboard->inlineKeyboard.push_back(firstRow);
+
+        // Создание второго ряда для кнопок с продуктами, по одной кнопке в ряд
+        for (const auto& product : filteredProducts) {
+            std::vector<TgBot::InlineKeyboardButton::Ptr> productRow;
+
+            TgBot::InlineKeyboardButton::Ptr productButton(new TgBot::InlineKeyboardButton);
+            productButton->text = product.getName();
+            productButton->callbackData = "product_" + product.getName();
+            productRow.push_back(productButton);
+
+            keyboard->inlineKeyboard.push_back(productRow);
+        }
+
+        bot.getApi().sendMessage(message->chat->id, u8"Результаты поиска в категории " + category, false, 0, keyboard);
+    }
+
+    waitingForKeyword = false;
 }
